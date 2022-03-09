@@ -2,6 +2,8 @@
 #include<cmath>
 #include<iostream>
 
+#define pi 3.1415926535897932385
+
 class vec3 {
 public:
     vec3() : e{ 0,0,0 } {}

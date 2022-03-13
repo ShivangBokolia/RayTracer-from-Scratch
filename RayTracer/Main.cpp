@@ -37,7 +37,7 @@ color phong_shading(const hit_record& rec, Light& light, Camera& camera, const P
 }
 
 color lighting(const hit_record& rec, const ObjectsHit& world, const Phong& phong, Camera& camera) {
-	color pixel_color = color();
+	color pixel_color = color(0, 0, 0);
 
 	for (int i = 0; i < phong.lights.size(); i++) {
 		Light light = phong.lights[i];
@@ -63,7 +63,6 @@ color ray_color(const ray& r, const ObjectsHit& world, const Phong& phong, Camer
 	if (world.hit(r, 0, infinity, rec))
 	{
 		return lighting(rec, world, phong, camera);
-		/*return 0.5 * (color(1, 1, 1) + rec.normal);*/
 	}
 	else {
 		return color(0.5, 0.7, 1.0);
@@ -79,35 +78,17 @@ int main()
 
 	// World:
 	World world;
-	world.addObject(new Sphere(point3(0, 0, -1), 0.5, color(1, 0, 0)));
-	world.addObject(new Sphere(point3(0.6, -0.5, -1.2), 0.4, color(0, 1, 0)));
-
+	world.addObject(new Triangle(point3(-1, -1, 0), point3(1.5, -1, 0), point3(1.5, -1, -4), color(1, 0, 1)));
+	world.addObject(new Triangle(point3(-1, -1, 0), point3(1.5, -1, -4), point3(-1, -1, -4), color(1, 0, 1)));
+	world.addObject(new Sphere(point3(0, 0, -2), 0.5, color(1, 0, 0)));
+	world.addObject(new Sphere(point3(0.6, -0.5, -2.2), 0.4, color(0, 1, 0)));
+	
 	// Lights:
 	Phong phong(1.0, 1.0, 1.0, 1.0);
-	phong.add_light(vec3(5, 5, 5), color(1, 1, 1), 0.5);
+	phong.add_light(vec3(0, 7, 4), color(1, 1, 1), 1.0);
 
 	// Camera Features:
 	Camera camera(point3(0, 0, 1), point3(0, 0, -1), vec3(0, 1, 0), 75.0, aspect_ratio);
-	/*double viewport_height = 2.0;
-	double viewport_width = aspect_ratio * viewport_height;
-	double focal_length = 1.0;
-
-	point3 origin = point3(0, 0, 1);
-	vec3 horizontal = vec3(viewport_width, 0, 0);
-	vec3 vertical = vec3(0, viewport_height, 0);
-	auto upper_left_corner = origin - (horizontal / 2) + (vertical / 2) - vec3(0, 0, focal_length);*/
-
-	//// Sphere 1:
-	//Sphere sphere1(point3(0, 0, -1), 1.0);
-
-	//// Sphere 2:
-	//Sphere sphere2(point3(0.6, -0.5, -1.2), 0.4);
-
-	//// Triangle 1:
-	//Triangle triangle1(point3(-1, -1, -5), point3(5, -1, -5), point3(11, -6, -5));
-
-	//// Triangle 2:
-	//Triangle triangle2(point3(-1, -1, -5), point3(11, -6, -5), point3(-3, -6, -5));
 
 	// Ray Tracing:
 	std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";

@@ -1,6 +1,6 @@
 #include "Triangle.h"
 
-Triangle::Triangle(point3 _vertex1, point3 _vertex2, point3 _vertex3, color _material) {
+Triangle::Triangle(point3 _vertex1, point3 _vertex2, point3 _vertex3, Material _material) {
 	vertex1 = _vertex1;
 	vertex2 = _vertex2;
 	vertex3 = _vertex3;
@@ -60,10 +60,31 @@ bool Triangle::hit(const ray& r, double t_min, double t_max, hit_record& rec) co
 		return false;
 	}
 
+	auto point = r.at(w);
+
+	// Getting the dimensions of the triangles:
+	double height = std::max(abs(vertex1.z() - vertex2.z()), abs(vertex1.z() - vertex3.z()));
+	double width = std::max(abs(vertex1.x() - vertex2.x()), abs(vertex1.x() - vertex3.x()));
+
+	// Getting the texture points:
+	auto u_texture = abs((point - vertex1).x() / width);
+	auto v_texture = abs((point - vertex3).z() / height);
+
 	rec.t = w;
 	rec.normal = triangle_normal;
 	rec.hit_point = r.at(w);
-	rec.obj_material = material;
+
+	int row = (int)(u_texture * 10);
+	int col = (int)(v_texture * 10);
+
+	if ((row + col) % 2 == 0) {
+		rec.obj_material = Material(0, color(1, 0, 0));
+		//rec.obj_material = color(1, 0, 0);
+	}
+	else {
+		rec.obj_material = Material(0, color(1, 1, 0));
+		//rec.obj_material = color(1, 1, 0);
+	}
 
 	return true;
 }

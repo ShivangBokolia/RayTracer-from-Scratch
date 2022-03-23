@@ -1,11 +1,13 @@
 #pragma once
 #include "Ray.h"
+#include "Material.h"
 
 struct hit_record {
 	point3 hit_point;
 	vec3 normal;
 	double t;
-	color obj_material;
+	Material obj_material;
+	//color obj_material;
 };
 
 class ObjectsHit {

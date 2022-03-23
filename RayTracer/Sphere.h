@@ -2,16 +2,19 @@
 #include "vec3.h"
 #include "Ray.h"
 #include "ObjectsHit.h"
+#include "Material.h"
 
 class Sphere : public ObjectsHit {
 
 private:
 	double radius;
 	point3 center;
-	color material;
+	Material material;
 
 public:
-	Sphere(point3 _center, double _radius, color _material);
+	const double infinity = std::numeric_limits<double>::infinity();
+
+	Sphere(point3 _center, double _radius, Material _material);
 
 	double get_radius() const { return radius; }
 	point3 get_center() const { return center; }

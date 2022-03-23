@@ -7,6 +7,7 @@
 #include "World.h"
 #include "Camera.h"
 #include "Phong.h"
+#include "Material.h"
 
 
 const double infinity = std::numeric_limits<double>::infinity();
@@ -23,7 +24,8 @@ color phong_shading(const hit_record& rec, Light& light, Camera& camera, const P
 	double light_distance = (light.light_position - rec.hit_point).length();
 	double NdotL = dot(rec.normal, light_dir);
 	if (NdotL >= 0) {
-		diffuse_color += (rec.obj_material * light.light_color * (light.intensity * NdotL) * phong.kd);
+		diffuse_color += (rec.obj_material.mat_color * light.light_color * (light.intensity * NdotL) * phong.kd);
+		//diffuse_color += (rec.obj_material * light.light_color * (light.intensity * NdotL) * phong.kd);
 	}
 
 	double RdotV = dot(rec.normal, light_camera_dir);
@@ -52,7 +54,6 @@ color lighting(const hit_record& rec, const ObjectsHit& world, const Phong& phon
 		{
 			continue;
 		} 
-
 		pixel_color += phong_shading(rec, light, camera, phong);
 	}
 	return pixel_color;
@@ -76,16 +77,21 @@ int main()
 	const double aspect_ratio = 16.0 / 9.0;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
 
+	// Creating Materials for the objects:
+	Material reflective_sphere(0, color(1, 0, 1));
+	Material plain_sphere(0, color(0, 1, 0));
+	Material plain_triangle(0, color(1, 0, 0));
+
 	// World:
 	World world;
-	world.addObject(new Triangle(point3(-1, -1, 0), point3(1.5, -1, 0), point3(1.5, -1, -4), color(1, 0, 1)));
-	world.addObject(new Triangle(point3(-1, -1, 0), point3(1.5, -1, -4), point3(-1, -1, -4), color(1, 0, 1)));
-	world.addObject(new Sphere(point3(0, 0, -2), 0.5, color(1, 0, 0)));
-	world.addObject(new Sphere(point3(0.6, -0.5, -2.2), 0.4, color(0, 1, 0)));
+	world.addObject(new Triangle(point3(-1, -1, 0), point3(1.5, -1, 0), point3(1.5, -1, -4), plain_triangle));
+	world.addObject(new Triangle(point3(-1, -1, 0), point3(1.5, -1, -4), point3(-1, -1, -4), plain_triangle));
+	world.addObject(new Sphere(point3(0, 0, -1.3), 0.5, reflective_sphere));
+	world.addObject(new Sphere(point3(0.6, -0.3, -2), 0.4, plain_sphere));
 	
 	// Lights:
 	Phong phong(1.0, 1.0, 1.0, 1.0);
-	phong.add_light(vec3(0, 7, 4), color(1, 1, 1), 1.0);
+	phong.add_light(vec3(0, 7, 4), color(1, 1, 1), 0.75);
 
 	// Camera Features:
 	Camera camera(point3(0, 0, 1), point3(0, 0, -1), vec3(0, 1, 0), 75.0, aspect_ratio);

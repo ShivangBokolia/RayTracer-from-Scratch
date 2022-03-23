@@ -1,6 +1,6 @@
 #include "Sphere.h"
 
-Sphere::Sphere(point3 _center, double _radius, color _material) {
+Sphere::Sphere(point3 _center, double _radius, Material _material) {
 	center = _center;
 	radius = _radius;
 	material = _material;

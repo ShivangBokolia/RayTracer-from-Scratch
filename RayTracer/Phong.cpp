@@ -16,7 +16,7 @@ color Phong::phong_shading(const hit_record& rec, Light& light, Camera& camera) 
 	double light_distance = (light.light_position - rec.hit_point).length();
 	double NdotL = dot(rec.normal, light_dir);
 	if (NdotL >= 0) {
-		diffuse_color += (rec.obj_material * light.light_color * (light.intensity * NdotL) * kd);
+		diffuse_color += (rec.obj_material.mat_color * light.light_color * (light.intensity * NdotL) * kd);
 	}
 
 	double RdotV = dot(rec.normal, light_camera_dir);

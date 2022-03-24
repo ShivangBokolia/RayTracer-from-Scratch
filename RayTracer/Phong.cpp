@@ -7,6 +7,7 @@ void Phong::add_light(vec3 light_position, color light_color, double intensity) 
 color Phong::phong_shading(const hit_record& rec, Light& light, Camera& camera) {
 	color diffuse_color = color();
 	color specular_color = color();
+	color ambient_color = ka * rec.obj_material.mat_color;
 
 	vec3 light_dir = unit_vector(light.light_position - rec.hit_point);
 	vec3 camera_dir = unit_vector(camera.get_position() - rec.hit_point);
@@ -26,5 +27,5 @@ color Phong::phong_shading(const hit_record& rec, Light& light, Camera& camera) 
 		specular_color += (light.light_color * light.intensity * specular * ks);
 	}
 
-	return diffuse_color + specular_color;
+	return ambient_color + diffuse_color + specular_color;
 }

@@ -39,7 +39,7 @@ const double infinity = std::numeric_limits<double>::infinity();
 //	return ambient_color + diffuse_color + specular_color;
 //}
 
-color lighting(const hit_record& rec, const ObjectsHit& world, Phong& phong, Camera& camera) {
+color lighting(hit_record& rec, const ObjectsHit& world, Phong& phong, Camera& camera) {
 	color pixel_color = color(0, 0, 0);
 
 	for (int i = 0; i < phong.lights.size(); i++) {
@@ -53,7 +53,6 @@ color lighting(const hit_record& rec, const ObjectsHit& world, Phong& phong, Cam
 
 		if (world.hit(shadow_ray, 0, infinity, shadow_rec))
 		{
-			//pixel_color += phong_shading(shadow_rec, light, camera, phong);
 			continue;
 		} 
 		pixel_color += phong.phong_shading(rec, light, camera);
@@ -95,25 +94,26 @@ int main()
 	const int image_width = 600;
 	const double aspect_ratio = 16.0 / 9.0;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
+	const int samples_per_pixel = 10;
 
 	// Creating Materials for the objects:
-	Material reflective_sphere(0.9, color(1, 0, 1));
-	Material plain_sphere(0, color(0, 1, 0));
-	Material plain_triangle(0, color(1, 0, 0));
+	Material reflective_sphere(0.9, color(0.5, 0.5, 0.5));
+	Material plain_sphere(color(1, 0, 0), color(1, 1, 1));
+	Material plain_triangle(color(1, 0, 0), color(1, 1, 1));
 
 	// World:
 	World world;
-	world.addObject(new Triangle(point3(-1, -1, 0), point3(1.5, -1, 0), point3(1.5, -1, -4), plain_triangle));
-	world.addObject(new Triangle(point3(-1, -1, 0), point3(1.5, -1, -4), point3(-1, -1, -4), plain_triangle));
-	world.addObject(new Sphere(point3(0, 0, -1.3), 0.5, reflective_sphere));
-	world.addObject(new Sphere(point3(0.6, -0.3, -2), 0.4, plain_sphere));
-	
+	world.addObject(new Triangle(point3(-3, -1, -8), point3(8, -1, -8), point3(8, -1, 17), plain_triangle));
+	world.addObject(new Triangle(point3(-3, -1, -8), point3(8, -1, 17), point3(-3, -1, 17), plain_triangle));
+	world.addObject(new Sphere(point3(0, 3, 8), 2, reflective_sphere));
+	world.addObject(new Sphere(point3(3, 2, 4), 1.75, reflective_sphere));
+
 	// Lights:
-	Phong phong(0.7, 1.0, 0.7, 0.7);
-	phong.add_light(vec3(0, 7, 10), color(1, 1, 1), 0.75);
+	Phong phong(0.8, 1.0, 1.0, 1.0);
+	phong.add_light(vec3(-4, 25, 30), color(1, 1, 1), 1);
 
 	// Camera Features:
-	Camera camera(point3(0, 0, 1), point3(0, 0, -1), vec3(0, 1, 0), 75.0, aspect_ratio);
+	Camera camera(point3(0, 5, 25), point3(0, 0, 0), vec3(0, 1, 0), 45, aspect_ratio);
 
 	// Ray Tracing:
 	std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
@@ -121,11 +121,14 @@ int main()
 	for (int i = 0; i < image_height; i++) {
 		std::cerr << "\rScanlines remaining: " << i << ' ' << std::flush;
 		for (int j=0; j< image_width; j++) {
-			auto u = double(j) / (image_width - 1);
-			auto v = double(i) / (image_height - 1);
-			ray r = camera.send_ray(u, v);
-			color pixel_color = ray_color(r, world, phong, camera, 50);
-			write_color(std::cout, pixel_color);
+			color pixel_color;
+			for (int s = 0; s < samples_per_pixel; s++) {
+				auto u = double(j + random_double()) / (image_width - 1);
+				auto v = double(i + random_double()) / (image_height - 1);
+				ray r = camera.send_ray(u, v);
+				pixel_color += ray_color(r, world, phong, camera, 50);
+			}
+			write_color(std::cout, pixel_color, samples_per_pixel);
 		}
 	}
 	std::cerr << "\nDone.\n";

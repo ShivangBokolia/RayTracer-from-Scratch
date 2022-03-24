@@ -1,5 +1,6 @@
 #pragma once
 #include<cmath>
+#include<cstdlib>
 #include<iostream>
 
 #define pi 3.1415926535897932385
@@ -100,4 +101,14 @@ inline vec3 unit_vector(vec3 v) {
 
 inline vec3 reflect(const vec3& v, const vec3& n) {
     return v - (2 * dot(v, n) * n);
+}
+
+inline double random_double() {
+    return static_cast<double>(rand()) / static_cast<double>((RAND_MAX));
+}
+
+inline double clamp(double x, double min, double max) {
+    if (x < min) return min;
+    if (x > max) return max;
+    return x;
 }

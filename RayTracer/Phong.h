@@ -20,7 +20,7 @@ public:
 
 	void add_light(vec3 light_position, color light_color, double intensity);
 
-	color phong_shading(const hit_record& rec, Light& light, Camera& camera);
+	color phong_shading(hit_record& rec, Light& light, Camera& camera);
 
 public:
 	vector<Light> lights;

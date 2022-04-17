@@ -22,6 +22,10 @@ public:
 
 	color phong_shading(hit_record& rec, Light& light, Camera& camera);
 
+	color ambient_lighting(hit_record& rec);
+
+	color blinn_phong_shading(hit_record& rec, Light& light, Camera& camera);
+
 public:
 	vector<Light> lights;
 };

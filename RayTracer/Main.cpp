@@ -40,7 +40,8 @@ const double infinity = std::numeric_limits<double>::infinity();
 //}
 
 color lighting(hit_record& rec, const ObjectsHit& world, Phong& phong, Camera& camera) {
-	color pixel_color = color(0, 0, 0);
+	/*color pixel_color = color(0, 0, 0);*/
+	color pixel_color = (phong.ambient_lighting(rec) * color(0.5, 0.7, 1.0));
 
 	for (int i = 0; i < phong.lights.size(); i++) {
 		Light light = phong.lights[i];
@@ -51,11 +52,14 @@ color lighting(hit_record& rec, const ObjectsHit& world, Phong& phong, Camera& c
 		ray shadow_ray(shadow_position, light_dir);
 		hit_record shadow_rec;
 
-		if (world.hit(shadow_ray, 0, infinity, shadow_rec))
+		if (world.hit(shadow_ray, 0.001, infinity, shadow_rec))
 		{
 			continue;
-		} 
-		pixel_color += phong.phong_shading(rec, light, camera);
+		}
+		else {
+			pixel_color += phong.phong_shading(rec, light, camera);
+		}
+		
 	}
 	return pixel_color;
 }
@@ -71,14 +75,38 @@ color ray_color(const ray& r, const ObjectsHit& world, Phong& phong, Camera& cam
 	if (world.hit(r, 0.001, infinity, rec))
 	{
 		double kr = rec.obj_material.get_kr();
+		double kt = rec.obj_material.get_kt();
+
+		double n2 = rec.obj_material.get_ref_index();
+		double refractive_index = 1 / n2;
+
+		vec3 reflection_vec = reflect(unit_vector(-r.direction()), rec.normal);
+
 		if (kr > 0) {
-			vec3 reflection_vec = reflect(unit_vector(r.direction()), rec.normal);
 			ray reflection_ray(rec.hit_point, reflection_vec);
 			pixel_color += kr * ray_color(reflection_ray, world, phong, camera, depth-1);
+		}
+		else if (kt > 0) {
+			vec3 normal = rec.normal;
+			if (dot(normal, -r.direction()) < 0)
+			{
+				normal *= -1;
+				refractive_index = n2 / 1;
+			}
+			vec3 refraction_vec = refract(r.direction(), normal, refractive_index);
+			if (refraction_vec.x() == 0 && refraction_vec.y() == 0 && refraction_vec.z() == 0)
+			{
+				refraction_vec = reflect(r.direction(), normal);
+			}
+
+			ray refraction_ray(rec.hit_point + 0.01 * refraction_vec, refraction_vec);
+
+			pixel_color += kt * ray_color(refraction_ray, world, phong, camera, depth - 1);
 		}
 		else {
 			pixel_color += lighting(rec, world, phong, camera);
 		}
+
 		return pixel_color;
 	}
 	else {
@@ -97,19 +125,23 @@ int main()
 	const int samples_per_pixel = 10;
 
 	// Creating Materials for the objects:
-	Material reflective_sphere(0.9, color(0.5, 0.5, 0.5));
+	// kr, kt, ref_index
+	Material reflective_sphere(0.9, 0, 1.0, color(0.5, 0.5, 0.5));
+	Material transmittive_sphere(0, 0.8, 0.95, color(1, 1, 1));
 	Material plain_sphere(color(1, 0, 0), color(1, 1, 1));
+	Material plain_sphere_2(color(0, 1, 0), color(1, 1, 1));
 	Material plain_triangle(color(1, 0, 0), color(1, 1, 1));
 
 	// World:
 	World world;
 	world.addObject(new Triangle(point3(-3, -1, -8), point3(8, -1, -8), point3(8, -1, 17), plain_triangle));
 	world.addObject(new Triangle(point3(-3, -1, -8), point3(8, -1, 17), point3(-3, -1, 17), plain_triangle));
-	world.addObject(new Sphere(point3(0, 3, 8), 2, reflective_sphere));
+	world.addObject(new Sphere(point3(0, 3, 8), 2, transmittive_sphere));
 	world.addObject(new Sphere(point3(3, 2, 4), 1.75, reflective_sphere));
 
 	// Lights:
-	Phong phong(0.8, 1.0, 1.0, 1.0);
+	// ka, kd, ks, ke
+	Phong phong(0.1, 0.5, 0.5, 128);
 	phong.add_light(vec3(-4, 25, 30), color(1, 1, 1), 1);
 
 	// Camera Features:

@@ -7,6 +7,7 @@ struct hit_record {
 	vec3 normal;
 	double t;
 	Material obj_material;
+	std::string object_name;
 	//color obj_material;
 };
 

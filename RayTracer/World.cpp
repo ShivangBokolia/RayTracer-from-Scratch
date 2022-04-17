@@ -11,9 +11,12 @@ bool World::hit(const ray& r, double t_min, double t_max, hit_record& rec) const
 
 	for (const auto& object : objects) {
 		if (object->hit(r, t_min, closest, temp_rec)) {
-			any_hit_occured = true;
-			closest = temp_rec.t;
-			rec = temp_rec;
+			if (temp_rec.t < closest)
+			{
+				closest = temp_rec.t;
+				rec = temp_rec;
+				any_hit_occured = true;
+			}
 		}
 	}
 	return any_hit_occured;

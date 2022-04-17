@@ -41,7 +41,7 @@ bool Triangle::hit(const ray& r, double t_min, double t_max, hit_record& rec) co
 	vec3 P = cross(r.direction(), e2);
 	vec3 Q = cross(T, e1);
 
-	vec3 triangle_normal = unit_vector(cross(e1, e2));
+	vec3 triangle_normal = -unit_vector(cross(e1, e2));
 
 	// Almost parallel
 	if (dot(P, e1) == 0) {
@@ -53,10 +53,20 @@ bool Triangle::hit(const ray& r, double t_min, double t_max, hit_record& rec) co
 	auto u = f * (dot(P, T));
 	auto v = f * (dot(Q, r.direction()));
 
-	if (w < 0) {
+	/*if (w < 0) {
 		return false;
 	}
 	if (u < 0 || v < 0 || u + v > 1) {
+		return false;
+	}*/
+
+	if (w < t_min || w > t_max) {
+		return false;
+	}
+	else if (u < 0 || u > 1) {
+		return false;
+	}
+	else if (v < 0 || u + v > 1) {
 		return false;
 	}
 
@@ -73,17 +83,18 @@ bool Triangle::hit(const ray& r, double t_min, double t_max, hit_record& rec) co
 	rec.t = w;
 	rec.normal = triangle_normal;
 	rec.hit_point = r.at(w);
+	rec.object_name = "Triangle";
 
 	int row = (int)(u_texture * 10);
 	int col = (int)(v_texture * 10);
 
 	if ((row + col) % 2 == 0) {
-		rec.obj_material = Material(0, color(1, 0, 0));
-		//rec.obj_material = color(1, 0, 0);
+		//rec.obj_material = Material(0, 0, 1, color(1, 0, 0));
+		rec.obj_material = Material(color(1, 0, 0), color(0.1, 0.1, 0.1));
 	}
 	else {
-		rec.obj_material = Material(0, color(1, 1, 0));
-		//rec.obj_material = color(1, 1, 0);
+		//rec.obj_material = Material(0, 0, 1, color(1, 1, 0));
+		rec.obj_material = Material(color(1, 1, 0), color(0.1, 0.1, 0.1));
 	}
 
 	return true;

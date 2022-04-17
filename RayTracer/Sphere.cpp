@@ -58,5 +58,6 @@ bool Sphere::hit(const ray& r, double t_min, double t_max, hit_record& rec) cons
 	rec.hit_point = r.at(rec.t);
 	rec.normal = (rec.hit_point - get_center()) / get_radius();
 	rec.obj_material = material;
+	rec.object_name = "Sphere";
 	return true;
 }

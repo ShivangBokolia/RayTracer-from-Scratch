@@ -110,35 +110,17 @@ inline vec3 reflect(const vec3& v, const vec3& n) {
 }
 
 inline vec3 refract(const vec3 incident_vec, vec3 n, double refractive_index) {
-    double cos_incident = -dot(incident_vec, n);
+    double cos_incident = dot(-incident_vec, n);
     double sin_incident = refractive_index * refractive_index * (1 - (cos_incident * cos_incident));
     if (sin_incident > 1)
     {
-        return vec3(0, 0, 0);
+
+        return reflect(unit_vector(incident_vec), n);
     }
     double cos_t = sqrt(1 - sin_incident);
     vec3 refracted = unit_vector((incident_vec * refractive_index) + (n * (refractive_index * cos_incident - cos_t)));
     return refracted;
 }
-
-//inline vec3 refract(const vec3 incident_vec, vec3 n, double ni, double nt) {
-//    double cos_theta = dot(incident_vec, n);
-//    if (cos_theta < 0)
-//    {
-//        n = -n;
-//        nt = ni;
-//    }
-//    double sin_theta = 1 - (cos_theta * cos_theta);
-//    double etai_over_etat = ni / nt;
-//
-//    if (etai_over_etat * sqrt(sin_theta) > 1.0) {
-//        return reflect(incident_vec, n);
-//    }
-//
-//    vec3 r_out_prep = etai_over_etat * (incident_vec - (cos_theta * n));
-//    vec3 r_out_parallel = sqrt(1.0 - (etai_over_etat * etai_over_etat * sin_theta)) * n;
-//    return -unit_vector(r_out_prep + r_out_parallel);
-//}
 
 inline double random_double() {
     return static_cast<double>(rand()) / static_cast<double>((RAND_MAX));

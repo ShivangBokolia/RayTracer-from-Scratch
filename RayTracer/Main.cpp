@@ -40,8 +40,8 @@ const double infinity = std::numeric_limits<double>::infinity();
 //}
 
 color lighting(hit_record& rec, const ObjectsHit& world, Phong& phong, Camera& camera) {
-	/*color pixel_color = color(0, 0, 0);*/
-	color pixel_color = (phong.ambient_lighting(rec) * color(0.5, 0.7, 1.0));
+	color pixel_color = color(0, 0, 0);
+	/*color pixel_color = (phong.ambient_lighting(rec) * color(0.5, 0.7, 1.0));*/
 
 	for (int i = 0; i < phong.lights.size(); i++) {
 		Light light = phong.lights[i];
@@ -52,13 +52,17 @@ color lighting(hit_record& rec, const ObjectsHit& world, Phong& phong, Camera& c
 		ray shadow_ray(shadow_position, light_dir);
 		hit_record shadow_rec;
 
+		double shadow_multiplier = 1.0;
 		if (world.hit(shadow_ray, 0.001, infinity, shadow_rec))
 		{
-			continue;
+			/*continue;*/
+			shadow_multiplier = 1 - shadow_rec.obj_material.get_kr();
+			if (shadow_multiplier <= 0)
+			{
+				continue;
+			}
 		}
-		else {
-			pixel_color += phong.phong_shading(rec, light, camera);
-		}
+		pixel_color += phong.phong_shading(rec, light, camera) * shadow_multiplier;
 		
 	}
 	return pixel_color;
@@ -86,7 +90,7 @@ color ray_color(const ray& r, const ObjectsHit& world, Phong& phong, Camera& cam
 			ray reflection_ray(rec.hit_point, reflection_vec);
 			pixel_color += kr * ray_color(reflection_ray, world, phong, camera, depth-1);
 		}
-		else if (kt > 0) {
+		if (kt > 0) {
 			vec3 normal = rec.normal;
 			if (dot(normal, -r.direction()) < 0)
 			{
@@ -94,14 +98,14 @@ color ray_color(const ray& r, const ObjectsHit& world, Phong& phong, Camera& cam
 				refractive_index = n2 / 1;
 			}
 			vec3 refraction_vec = refract(r.direction(), normal, refractive_index);
-			if (refraction_vec.x() == 0 && refraction_vec.y() == 0 && refraction_vec.z() == 0)
+			/*if (refraction_vec.x() == 0 && refraction_vec.y() == 0 && refraction_vec.z() == 0)
 			{
 				refraction_vec = reflect(r.direction(), normal);
-			}
+			}*/
 
 			ray refraction_ray(rec.hit_point + 0.01 * refraction_vec, refraction_vec);
-
 			pixel_color += kt * ray_color(refraction_ray, world, phong, camera, depth - 1);
+			
 		}
 		else {
 			pixel_color += lighting(rec, world, phong, camera);
@@ -110,16 +114,16 @@ color ray_color(const ray& r, const ObjectsHit& world, Phong& phong, Camera& cam
 		return pixel_color;
 	}
 	else {
-		auto t = 0.5 * (unit_vector(r.direction()).y() + 1);
+		auto t = 0.5 * (unit_vector(r.direction()).y() + 0.5);
 		return (1 - t) * color(0.3, 0, 0.3) + t * color(0.5, 0.7, 1.0);
-		//return color(0.5, 0.7, 1.0);
+		/*return color(0.5, 0.7, 1.0);*/
 	}
 }
 
 int main()
 {
 	// Image Features:
-	const int image_width = 600;
+	const int image_width = 720;
 	const double aspect_ratio = 16.0 / 9.0;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
 	const int samples_per_pixel = 10;
@@ -127,7 +131,7 @@ int main()
 	// Creating Materials for the objects:
 	// kr, kt, ref_index
 	Material reflective_sphere(0.9, 0, 1.0, color(0.5, 0.5, 0.5));
-	Material transmittive_sphere(0, 0.8, 0.95, color(1, 1, 1));
+	Material transmittive_sphere(0.1, 0.9, 0.97, color(1, 1, 1));
 	Material plain_sphere(color(1, 0, 0), color(1, 1, 1));
 	Material plain_sphere_2(color(0, 1, 0), color(1, 1, 1));
 	Material plain_triangle(color(1, 0, 0), color(1, 1, 1));
@@ -145,7 +149,8 @@ int main()
 	phong.add_light(vec3(-4, 25, 30), color(1, 1, 1), 1);
 
 	// Camera Features:
-	Camera camera(point3(0, 5, 25), point3(0, 0, 0), vec3(0, 1, 0), 45, aspect_ratio);
+	/*Camera camera(point3(0, 5, 25), point3(0, 0, 0), vec3(0, 1, 0), 45, aspect_ratio);*/
+	Camera camera(point3(0, 5, 20), point3(0, 0, 0), vec3(0, 1, 0), 45, aspect_ratio);
 
 	// Ray Tracing:
 	std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
@@ -158,7 +163,7 @@ int main()
 				auto u = double(j + random_double()) / (image_width - 1);
 				auto v = double(i + random_double()) / (image_height - 1);
 				ray r = camera.send_ray(u, v);
-				pixel_color += ray_color(r, world, phong, camera, 50);
+				pixel_color += ray_color(r, world, phong, camera, 10);
 			}
 			write_color(std::cout, pixel_color, samples_per_pixel);
 		}

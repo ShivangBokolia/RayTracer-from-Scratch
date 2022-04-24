@@ -115,7 +115,7 @@ inline vec3 refract(const vec3 incident_vec, vec3 n, double refractive_index) {
     if (sin_incident > 1)
     {
 
-        return reflect(unit_vector(incident_vec), n);
+        return reflect(-unit_vector(incident_vec), n);
     }
     double cos_t = sqrt(1 - sin_incident);
     vec3 refracted = unit_vector((incident_vec * refractive_index) + (n * (refractive_index * cos_incident - cos_t)));

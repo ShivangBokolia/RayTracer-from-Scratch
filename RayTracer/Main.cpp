@@ -12,33 +12,6 @@
 
 const double infinity = std::numeric_limits<double>::infinity();
 
-//color phong_shading(const hit_record& rec, Light& light, Camera& camera, const Phong& phong) {
-//	color diffuse_color = color();
-//	color specular_color = color();
-//	color ambient_color = phong.ka * rec.obj_material.mat_color;
-//
-//	vec3 light_dir = unit_vector(light.light_position - rec.hit_point);
-//	vec3 camera_dir = unit_vector(camera.get_position() - rec.hit_point);
-//
-//	vec3 light_camera_dir = unit_vector(light_dir + camera_dir);
-//
-//	double light_distance = (light.light_position - rec.hit_point).length();
-//	double NdotL = dot(rec.normal, light_dir);
-//	if (NdotL >= 0) {
-//		diffuse_color += (rec.obj_material.mat_color * light.light_color * (light.intensity * NdotL) * phong.kd);
-//		//diffuse_color += (rec.obj_material * light.light_color * (light.intensity * NdotL) * phong.kd);
-//	}
-//
-//	double RdotV = dot(rec.normal, light_camera_dir);
-//	if (RdotV >= 0)
-//	{
-//		double specular = pow(RdotV, phong.ke);
-//		specular_color += (light.light_color * light.intensity * specular * phong.ks);
-//	}
-//
-//	return ambient_color + diffuse_color + specular_color;
-//}
-
 color lighting(hit_record& rec, const ObjectsHit& world, Phong& phong, Camera& camera) {
 	color pixel_color = color(0, 0, 0);
 	/*color pixel_color = (phong.ambient_lighting(rec) * color(0.5, 0.7, 1.0));*/
@@ -55,7 +28,6 @@ color lighting(hit_record& rec, const ObjectsHit& world, Phong& phong, Camera& c
 		double shadow_multiplier = 1.0;
 		if (world.hit(shadow_ray, 0.001, infinity, shadow_rec))
 		{
-			/*continue;*/
 			shadow_multiplier = 1 - shadow_rec.obj_material.get_kr();
 			if (shadow_multiplier <= 0)
 			{
@@ -98,10 +70,6 @@ color ray_color(const ray& r, const ObjectsHit& world, Phong& phong, Camera& cam
 				refractive_index = n2 / 1;
 			}
 			vec3 refraction_vec = refract(r.direction(), normal, refractive_index);
-			/*if (refraction_vec.x() == 0 && refraction_vec.y() == 0 && refraction_vec.z() == 0)
-			{
-				refraction_vec = reflect(r.direction(), normal);
-			}*/
 
 			ray refraction_ray(rec.hit_point + 0.01 * refraction_vec, refraction_vec);
 			pixel_color += kt * ray_color(refraction_ray, world, phong, camera, depth - 1);
@@ -118,6 +86,50 @@ color ray_color(const ray& r, const ObjectsHit& world, Phong& phong, Camera& cam
 		return (1 - t) * color(0.3, 0, 0.3) + t * color(0.5, 0.7, 1.0);
 		/*return color(0.5, 0.7, 1.0);*/
 	}
+}
+
+double calculate_log_average_lum( double** luminance, int rows, int cols ) {
+	double log_average = 0;
+	double delta = 0.00001;
+
+	for (int i = 0;i < rows; i++) {
+		for (int j = 0; j < cols; j++) {
+			log_average += log10(delta + luminance[i][j]);
+		}
+	}
+	log_average = log_average / ((double)rows * (double)cols);
+	log_average = exp(log_average);
+
+	return log_average;
+}
+
+double ward_tone_reproduction(double lwa, double ld_max) {
+	double top = 1.219 + pow((ld_max / 2), 0.4);
+	double bottom = 1.219 + pow(lwa, 0.4);
+	double sf = pow((top / bottom), 2.5);
+
+	return sf;
+}
+
+void adaptive_log_mapping(double lwa, double ld_max, color**& pixel_grid, double**& luminance, double rows, double cols) {
+	ld_max = ld_max / lwa;
+	double first_bottom = log10(ld_max + 1);
+	double b = 0.95;
+	double power = log(b) / log(0.5);
+	for (int i = 0; i < rows; i++)
+	{
+		for (int j = 0; j < cols; j++)
+		{
+			double lw = luminance[i][j] / lwa;
+			double second_top = log(lw + 1);
+			double lw_frac = lw / ld_max;
+			double second_bottom = log(2 + ((pow(lw_frac, power) * 8)));
+
+			double ld = (1 / first_bottom) * (second_top / second_bottom);
+			pixel_grid[i][j] *= ld;
+		}
+	}
+	
 }
 
 int main()
@@ -152,8 +164,25 @@ int main()
 	/*Camera camera(point3(0, 5, 25), point3(0, 0, 0), vec3(0, 1, 0), 45, aspect_ratio);*/
 	Camera camera(point3(0, 5, 20), point3(0, 0, 0), vec3(0, 1, 0), 45, aspect_ratio);
 
+	// Tone Reproduction :
+	double ld_max = -1;
+	// ward, reinhard, avg (advanced) or none
+	string whichTR = "none";
+
 	// Ray Tracing:
 	std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+	color** pixel_color_grid = new color* [image_height];
+	for (int i = 0; i < image_height; i++)
+	{
+		pixel_color_grid[i] = new color[image_width];
+	}
+
+	double** pixel_color_luminance = new double* [image_height];
+	for (int i = 0; i < image_height; i++)
+	{
+		pixel_color_luminance[i] = new double[image_width];
+	}
 
 	for (int i = 0; i < image_height; i++) {
 		std::cerr << "\rScanlines remaining: " << i << ' ' << std::flush;
@@ -165,8 +194,52 @@ int main()
 				ray r = camera.send_ray(u, v);
 				pixel_color += ray_color(r, world, phong, camera, 10);
 			}
-			write_color(std::cout, pixel_color, samples_per_pixel);
+			pixel_color_grid[i][j] = pixel_color;
+			pixel_color_luminance[i][j] = (0.27 * pixel_color.x()) + (0.67 * pixel_color.y()) + (0.06 * pixel_color.z());
+
+			if (ld_max < pixel_color_luminance[i][j])
+			{
+				ld_max = pixel_color_luminance[i][j];
+			}
 		}
 	}
+
+	double la = calculate_log_average_lum(pixel_color_luminance, image_height, image_width);
+
+	if (whichTR == "ward")
+	{
+		double sf = ward_tone_reproduction(la, ld_max);
+		for (int i = 0; i < image_height; i++)
+		{
+			for (int j = 0; j < image_width; j++)
+			{
+				pixel_color_grid[i][j] *= sf;
+			}
+		}
+	}
+	else if (whichTR == "reinhard") {
+		for (int i = 0; i < image_height; i++)
+		{
+			for (int j = 0; j < image_width; j++)
+			{
+				pixel_color_grid[i][j] *= (0.18 / la);
+				color temp = pixel_color_grid[i][j];
+				color new_value = color(temp.x() / (1 + temp.x()), temp.y() / (1 + temp.y()), temp.z() / (1 + temp.z()));
+				pixel_color_grid[i][j] = new_value * ld_max;
+			}
+		}
+	}
+	else if (whichTR == "avg") {
+		adaptive_log_mapping(la, ld_max, pixel_color_grid, pixel_color_luminance, image_height, image_width);
+	}
+
+	for (int i = 0; i < image_height; i++)
+	{
+		for (int j = 0; j < image_width; j++)
+		{
+			write_color(std::cout, pixel_color_grid[i][j], samples_per_pixel);
+		}
+	}
+
 	std::cerr << "\nDone.\n";
 }
